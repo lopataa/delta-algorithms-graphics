@@ -1,5 +1,8 @@
+import models.DashedLine;
 import models.Line;
 import models.LineCanvas;
+import rasterizers.DashedLineRasterizer;
+import rasterizers.LineRasterizer;
 import rasterizers.Rasterizer;
 import rasterizers.SimpleLineRasterizer;
 import rasters.Raster;
@@ -7,22 +10,22 @@ import rasters.RasterBufferedImage;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.io.Console;
 import java.io.Serial;
 
 public class Main {
 
     private final JPanel panel;
-    private Raster raster;
+    private final Raster raster;
     private MouseAdapter mouseAdapter;
     private KeyAdapter keyAdapter;
     private models.Point pointA;
-    private Rasterizer rasterizer;
-    private LineCanvas lineCanvas;
+    private final Rasterizer rasterizer;
+    private final LineCanvas lineCanvas;
+
+    private boolean isCtrlPressed = false;
+    private int dashLength = 10;
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Main(800, 600).start());
@@ -70,6 +73,7 @@ public class Main {
         panel.setPreferredSize(new Dimension(width, height));
         panel.addMouseMotionListener(mouseAdapter);
         panel.addMouseListener(mouseAdapter);
+        panel.addMouseWheelListener(mouseAdapter);
         panel.addKeyListener(keyAdapter);
 
         frame.add(panel, BorderLayout.CENTER);
@@ -79,9 +83,8 @@ public class Main {
         panel.requestFocus();
         panel.requestFocusInWindow();
 
-        rasterizer = new SimpleLineRasterizer(raster, new Color(0,0,0));
+        rasterizer = new LineRasterizer(raster, new Color(0, 0, 0));
     }
-
 
 
     private void createAdapters() {
@@ -100,12 +103,33 @@ public class Main {
                 super.mouseReleased(e);
                 Point p = e.getPoint();
 
+                models.Point pointB = new models.Point(p.x, p.y);
 
-                Line line = new Line(pointA, new models.Point(p.x, p.y), new Color(255, 255, 255));
+                Line line;
+                if (isCtrlPressed) {
+                    line = new DashedLine(pointA, pointB, dashLength, new Color(255, 255, 255));
+                } else {
+                    line = new Line(pointA, pointB, new Color(255, 255, 255));
+                }
+
                 lineCanvas.add(line);
 
                 rasterizer.rasterize(lineCanvas);
                 panel.repaint();
+            }
+
+            @Override
+            public void mouseWheelMoved(MouseWheelEvent e) {
+                super.mouseWheelMoved(e);
+
+                // modify the dash length
+
+                dashLength += e.getWheelRotation();
+                if (dashLength < 2) {
+                    dashLength = 2;
+                } else if (dashLength > 100) {
+                    dashLength = 100;
+                }
             }
 
             @Override
@@ -117,7 +141,11 @@ public class Main {
                 models.Point pointB = new models.Point(p.x, p.y);
 
                 raster.clear();
-                rasterizer.rasterize(new Line(pointA, pointB, new Color(128, 128, 128)));
+                if (isCtrlPressed) {
+                    rasterizer.rasterize(new DashedLine(pointA, pointB, dashLength, new Color(128, 128, 128)));
+                } else {
+                    rasterizer.rasterize(new Line(pointA, pointB, new Color(128, 128, 128)));
+                }
                 rasterizer.rasterize(lineCanvas);
                 panel.repaint();
             }
@@ -127,11 +155,19 @@ public class Main {
             @Override
             public void keyPressed(KeyEvent e) {
                 super.keyPressed(e);
+
+                if (e.getKeyCode() == KeyEvent.VK_CONTROL) {
+                    isCtrlPressed = true;
+                }
             }
 
             @Override
             public void keyReleased(KeyEvent e) {
-                if(e.getKeyChar() == 'c') {
+                if (e.getKeyCode() == KeyEvent.VK_CONTROL) {
+                    isCtrlPressed = false;
+                }
+
+                if (e.getKeyChar() == 'c') {
                     lineCanvas.clear();
                     raster.clear();
                     panel.repaint();

@@ -1,5 +1,7 @@
 package models;
 
+import rasterizers.Rasterizer;
+
 import java.awt.*;
 
 public class Line {

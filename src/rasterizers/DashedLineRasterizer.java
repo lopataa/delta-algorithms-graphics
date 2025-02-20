@@ -1,5 +1,6 @@
 package rasterizers;
 
+import models.DashedLine;
 import models.Line;
 import models.LineCanvas;
 import rasters.Raster;
@@ -38,6 +39,8 @@ public class DashedLineRasterizer implements Rasterizer {
         float k = (float) dy/dx;
         float q = y1 - (k*x1);
 
+        int dashCounter = 0;
+        int lineDashLength = ((DashedLine) line).getDashLength();
         if(Math.abs(k)<1) {
             if(x1 > x2) {
                 int tmp = x1;
@@ -47,7 +50,14 @@ public class DashedLineRasterizer implements Rasterizer {
             for (int x = x1; x <= x2; x++) {
                 int y = Math.round(k * x + q);
 
-                raster.setPixel(x, y, line.getColor().getRGB());
+                if(dashCounter == lineDashLength) {
+                    dashCounter = -lineDashLength;
+                    continue;
+                }
+                if(dashCounter > 0) {
+                    raster.setPixel(x, y, line.getColor().getRGB());
+                }
+                dashCounter++;
             }
         } else {
             if(y1 > y2) {
@@ -58,7 +68,14 @@ public class DashedLineRasterizer implements Rasterizer {
             for (int y = y1; y <= y2; y++) {
                 int x = Math.round((y-q)/k);
 
-                raster.setPixel(x, y, line.getColor().getRGB());
+                if(dashCounter == lineDashLength) {
+                    dashCounter = -lineDashLength;
+                    continue;
+                }
+                if(dashCounter > 0) {
+                    raster.setPixel(x, y, line.getColor().getRGB());
+                }
+                dashCounter++;
             }
         }
     }
