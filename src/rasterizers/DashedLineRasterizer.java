@@ -2,7 +2,7 @@ package rasterizers;
 
 import models.DashedLine;
 import models.Line;
-import models.LineCanvas;
+import models.Canvas;
 import rasters.Raster;
 
 import java.awt.*;
@@ -81,7 +81,7 @@ public class DashedLineRasterizer implements Rasterizer {
     }
 
     @Override
-    public void rasterize(LineCanvas canvas) {
+    public void rasterize(Canvas canvas) {
         for (Line line : canvas.getLines()) {
             rasterize(line);
         }

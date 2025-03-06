@@ -2,7 +2,7 @@ package rasterizers;
 
 import models.DashedLine;
 import models.Line;
-import models.LineCanvas;
+import models.Canvas;
 import rasters.Raster;
 
 import java.awt.*;
@@ -16,7 +16,7 @@ public class LineRasterizer implements Rasterizer {
 
     @Override
     public void setColor(Color color) {
-
+        color = color;
     }
 
     public LineRasterizer(Raster raster, Color color) {
@@ -35,7 +35,7 @@ public class LineRasterizer implements Rasterizer {
         }
     }
 
-    public void rasterize(LineCanvas canvas) {
+    public void rasterize(Canvas canvas) {
         for (Line line : canvas.getLines()) {
             rasterize(line);
         }

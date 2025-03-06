@@ -1,7 +1,7 @@
 package rasterizers;
 
 import models.Line;
-import models.LineCanvas;
+import models.Canvas;
 import rasters.Raster;
 
 import java.awt.*;
@@ -33,10 +33,28 @@ public class SimpleLineRasterizer implements Rasterizer {
             return;
         }
 
+        // Handle vertical line case (dx == 0)
+        if (x1 == x2) {
+            if (y1 > y2) {
+                int tmp = y1;
+                y1 = y2;
+                y2 = tmp;
+            }
+            for (int y = y1; y <= y2; y++) {
+                raster.setPixel(x1, y, line.getColor().getRGB());
+            }
+            return;  // Early exit for vertical lines, no need to calculate k and q
+        }
+
+        // dx now wont be equal to zero, yay!
         int dy = (y2-y1);
         int dx = (x2-x1);
         float k = (float) dy/dx;
         float q = y1 - (k*x1);
+
+        System.out.println("k: " + k);
+        System.out.println();
+
 
         if(Math.abs(k)<1) {
             if(x1 > x2) {
@@ -64,7 +82,7 @@ public class SimpleLineRasterizer implements Rasterizer {
     }
 
     @Override
-    public void rasterize(LineCanvas canvas) {
+    public void rasterize(Canvas canvas) {
         for (Line line : canvas.getLines()) {
             rasterize(line);
         }
