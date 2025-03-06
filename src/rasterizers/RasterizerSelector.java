@@ -3,27 +3,30 @@ package rasterizers;
 import models.DashedLine;
 import models.Line;
 import models.Canvas;
+import models.Polygon;
 import rasters.Raster;
 
 import java.awt.*;
 
-public class LineRasterizer implements Rasterizer {
+public class RasterizerSelector implements Rasterizer {
     private Color color;
     private Raster raster;
 
     private SimpleLineRasterizer simpleLineRasterizer;
     private DashedLineRasterizer dashedLineRasterizer;
+    private PolygonRasterizer polygonRasterizer;
 
     @Override
     public void setColor(Color color) {
         color = color;
     }
 
-    public LineRasterizer(Raster raster, Color color) {
+    public RasterizerSelector(Raster raster, Color color) {
         this.color = color;
         this.raster = raster;
         simpleLineRasterizer = new SimpleLineRasterizer(raster, color);
         dashedLineRasterizer = new DashedLineRasterizer(raster, color);
+        polygonRasterizer = new PolygonRasterizer(raster, color);
     }
 
     @Override
@@ -35,9 +38,16 @@ public class LineRasterizer implements Rasterizer {
         }
     }
 
+    public void rasterize(Polygon polygon) {
+        polygonRasterizer.rasterize(polygon);
+    }
+
     public void rasterize(Canvas canvas) {
         for (Line line : canvas.getLines()) {
             rasterize(line);
+        }
+        for (Polygon polygon : canvas.getPolygons()) {
+            rasterize(polygon);
         }
     }
 }

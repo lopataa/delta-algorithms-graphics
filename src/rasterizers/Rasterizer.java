@@ -5,7 +5,7 @@ import models.Canvas;
 
 import java.awt.*;
 
-public class Rasterizer {
+public interface Rasterizer {
 
     void setColor(Color color);
 

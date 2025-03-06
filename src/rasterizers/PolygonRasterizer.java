@@ -1,37 +1,52 @@
 package rasterizers;
 
-import models.Line;
 import models.Canvas;
-import models.Polygon;
+import models.Line;
 import rasters.Raster;
 
 import java.awt.*;
 
 public class PolygonRasterizer implements Rasterizer {
+
     private Color color;
     private Raster raster;
+    private SimpleLineRasterizer simpleLineRasterizer;
 
-    private LineRasterizer lineRasterizer;
-
+    @Override
     public void setColor(Color color) {
-        color = color;
+
     }
 
-    public PolygonRasterizer(LineRasterizer lineRasterizer, Raster raster, Color color) {
+    public PolygonRasterizer(Raster raster, Color color) {
         this.color = color;
         this.raster = raster;
-        this.lineRasterizer = lineRasterizer;
+
+        this.simpleLineRasterizer = new SimpleLineRasterizer(raster, color);
     }
 
-    public void rasterize(Polygon polygon) {
-        for (Line line : polygon.getLines()) {
-            lineRasterizer.rasterize(line);
+    public void rasterize(models.Polygon polygon) {
+        models.Point prevPoint = null;
+        for (models.Point point : polygon.getPoints()) {
+            if(prevPoint == null) {
+                prevPoint = point;
+                continue;
+            }
+
+            // create a line and rasterize it
+            simpleLineRasterizer.rasterize(new Line(prevPoint, point, Color.white));
+
+            prevPoint = point;
         }
+
+        simpleLineRasterizer.rasterize(new Line(prevPoint, polygon.getPoints().getFirst(), Color.white));
     }
 
+    @Override
     public void rasterize(Canvas canvas) {
-        for (Polygon polygon : canvas.getPolygons()) {
-            rasterize(polygon);
+        for (Line line : canvas.getLines()) {
+            rasterize(line);
         }
+
+        raster.repaint(raster.getGraphics());
     }
 }

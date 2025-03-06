@@ -52,10 +52,6 @@ public class SimpleLineRasterizer implements Rasterizer {
         float k = (float) dy/dx;
         float q = y1 - (k*x1);
 
-        System.out.println("k: " + k);
-        System.out.println();
-
-
         if(Math.abs(k)<1) {
             if(x1 > x2) {
                 int tmp = x1;

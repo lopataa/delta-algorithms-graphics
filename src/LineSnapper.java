@@ -1,7 +1,7 @@
 public class LineSnapper {
-    public static models.Point snap(int x1, int y1, int x2, int y2) {
-        int relativeX = x2 - x1;
-        int relativeY = y2 - y1;
+    public static models.Point snap(double x1, double y1, double x2, double y2) {
+        double relativeX = x2 - x1;
+        double relativeY = y2 - y1;
 
         // calculate the angle
         double angle = Math.atan2(relativeY, relativeX); // this is in radians

@@ -1,8 +1,7 @@
 import models.DashedLine;
 import models.Line;
 import models.Canvas;
-import rasterizers.LineRasterizer;
-import rasterizers.PolygonRasterizer;
+import rasterizers.RasterizerSelector;
 import rasterizers.Rasterizer;
 import rasters.Raster;
 import rasters.RasterBufferedImage;
@@ -21,16 +20,17 @@ public class Main {
     private KeyAdapter keyAdapter;
 
     // currently drawn objects
-    private ArrayList<models.Point> points; // for polygons
+    public models.Point pointA;
 
-    private final Rasterizer rasterizer;
-    private final Rasterizer polygonRasterizer;
+    public models.Point nearbyPoint;
+
+    private final RasterizerSelector rasterizer;
     private final Canvas canvas;
 
     // state info
     private boolean isCtrlPressed = false;
     private boolean isShiftPressed = false;
-    private boolean isPolygonModeEnabled = false;
+    private models.Polygon polygonMode;
     private int dashLength = 10;
 
     public static void main(String[] args) {
@@ -53,7 +53,7 @@ public class Main {
 
     public Main(int width, int height) {
         canvas = new Canvas();
-        points = new ArrayList<>();
+        pointA = new models.Point(0, 0);
 
         JFrame frame = new JFrame();
 
@@ -90,8 +90,7 @@ public class Main {
         panel.requestFocus();
         panel.requestFocusInWindow();
 
-        rasterizer = new LineRasterizer(raster, new Color(0, 0, 0));
-        polygonRasterizer = new PolygonRasterizer((LineRasterizer) rasterizer, raster, new Color(0, 0, 0));
+        rasterizer = new RasterizerSelector(raster, new Color(0, 0, 0));
     }
 
 
@@ -101,45 +100,77 @@ public class Main {
             @Override
             public void mousePressed(MouseEvent e) {
                 super.mousePressed(e);
-                Point p = e.getPoint();
 
-                points.add(new models.Point(p.x, p.y));
+                models.Point mousePoint = new models.Point(e.getX(), e.getY());
+                // if it was the right button
+                if (e.getButton() == MouseEvent.BUTTON3) {
+                    for (models.Line line : canvas.getLines()) {
+                        if (line.getA().getDistance(mousePoint) < 10) {
+                            nearbyPoint = line.getA();
+                            pointA = line.getB();
+                            return;
+                        }
+                        if (line.getB().getDistance(mousePoint) < 10) {
+                            nearbyPoint = line.getB();
+                            pointA = line.getA();
+                            return;
+                        }
+                    }
+                    for (models.Polygon polygon : canvas.getPolygons()) {
+                        for (models.Point point : polygon.getPoints()) {
+                            if(point.getDistance(mousePoint) < 10) {
+                                nearbyPoint = point;
+                            }
+                        }
+                    }
+                }
+
+                if(polygonMode != null) {
+                    polygonMode.addPoint(mousePoint);
+                    raster.clear();
+                    rasterizer.rasterize(polygonMode);
+                    rasterizer.rasterize(canvas);
+                    panel.repaint();
+                    return;
+                }
+
+                pointA = mousePoint;
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
                 super.mouseReleased(e);
 
+                if(e.getButton() == MouseEvent.BUTTON3) {
+                    nearbyPoint = null;
+                    return;
+                }
+                if(polygonMode != null) {
+                    return;
+                }
+
                 // add current to points
                 Point p = e.getPoint();
-                points.add(new models.Point(p.x, p.y));
 
-                // print all points in da buffer
-                for (models.Point pt : points) {
-                    System.out.println("X: " + pt.getX() + " Y: " + pt.getY());
+                models.Point pointB = new models.Point(p.x, p.y);
+
+                if (isShiftPressed) {
+                    pointB = LineSnapper.snap(pointA.getX(), pointA.getY(), pointB.getX(), pointB.getY());
                 }
-                System.out.println();
 
-                if(!isPolygonModeEnabled) {
-                    models.Point pointA = points.getFirst();
-                    models.Point pointB = points.getLast();
-                    if (isShiftPressed) {
-                        pointB = LineSnapper.snap(pointA.getX(), pointA.getY(), pointB.getX(), pointB.getY());
-                    }
-
-                    Line line;
-                    if (isCtrlPressed) {
-                        line = new DashedLine(pointA, pointB, dashLength, new Color(255, 255, 255));
-                    } else {
-                        line = new Line(pointA, pointB, new Color(255, 255, 255));
-                    }
-
-                    canvas.add(line);
-                    points.clear();
-
-                    rasterizer.rasterize(canvas);
-                    panel.repaint();
+                Line line;
+                if (isCtrlPressed) {
+                    line = new DashedLine(pointA, pointB, dashLength, new Color(255, 255, 255));
+                } else {
+                    line = new Line(pointA, pointB, new Color(255, 255, 255));
                 }
+
+
+                canvas.add(line);
+
+
+                rasterizer.rasterize(canvas);
+                panel.repaint();
             }
 
             @Override
@@ -160,8 +191,24 @@ public class Main {
                 super.mouseDragged(e);
 
                 Point p = e.getPoint();
-                models.Point pointA = points.getFirst();
                 models.Point pointB = new models.Point(p.x, p.y);
+                if(polygonMode != null) {
+                    return;
+                }
+
+                if (e.getButton() == MouseEvent.BUTTON3) {
+                    raster.clear();
+                    if(isShiftPressed && pointA != null) {
+                        pointB = LineSnapper.snap(pointA.getX(), pointA.getY(), pointB.getX(), pointB.getY());
+                    }
+
+                    nearbyPoint.setX(pointB.getX());
+                    nearbyPoint.setY(pointB.getY());
+                    rasterizer.rasterize(canvas);
+                    panel.repaint();
+                    return;
+                }
+
                 if (isShiftPressed) {
                     pointB = LineSnapper.snap(pointA.getX(), pointA.getY(), pointB.getX(), pointB.getY());
                 }
@@ -174,6 +221,22 @@ public class Main {
                 }
                 rasterizer.rasterize(canvas);
                 panel.repaint();
+            }
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                super.mouseMoved(e);
+
+                models.Point point = new models.Point(e.getX(), e.getY());
+                if(polygonMode != null) {
+                    models.Polygon polygon = new models.Polygon(new ArrayList(polygonMode.getPoints()));
+                    polygon.addPoint(point);
+                    raster.clear();
+                    rasterizer.rasterize(polygon);
+                    rasterizer.rasterize(canvas);
+                    panel.repaint();
+                    return;
+                }
             }
         };
 
@@ -196,7 +259,7 @@ public class Main {
                     isCtrlPressed = false;
                 }
 
-                if(e.getKeyCode() == KeyEvent.VK_SHIFT) {
+                if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
                     isShiftPressed = false;
                 }
 
@@ -206,26 +269,13 @@ public class Main {
                     panel.repaint();
                 }
 
-                if (e.getKeyChar() == 'p') {
-                    // if were quitting the polygon mode, render the polygon and save it
-                    if(isPolygonModeEnabled) {
-                        System.out.println("Polygon mode is quitting...");
-                        // go through all the points
-                        models.Point prev = null;
-                        ArrayList<Line> lines = new ArrayList<Line>();
-                        for (models.Point p : points) {
-                            if (prev != null) {
-                                System.out.println("X: " + prev.getX() + " Y: " + prev.getY() + " X2:" + p.getX() + " Y2:" + p.getY());
-                                lines.add(new Line(p, prev, new Color(255, 255, 255)));
-                            }
-                            prev = p;
-                        }
-
-                        canvas.add(new models.Polygon(lines));
+                if(e.getKeyChar() == 'p') {
+                    if(polygonMode != null) {
+                        canvas.add(polygonMode);
+                        polygonMode = null;
+                        return;
                     }
-                    isPolygonModeEnabled = !isPolygonModeEnabled;
-                    System.out.println("Polygon mode is rasterizing...");
-                    polygonRasterizer.rasterize(canvas);
+                    polygonMode = new models.Polygon();
                 }
 
                 super.keyReleased(e);

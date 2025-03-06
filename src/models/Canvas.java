@@ -8,8 +8,8 @@ public class Canvas {
     private List<Polygon> polygons;
 
     public Canvas() {
-        this.polygons = new ArrayList<Polygon>();
-        this.lines = new ArrayList<Line>();
+        this.lines = new ArrayList<>();
+        this.polygons = new ArrayList<>();
     }
 
     public void add(Line line) {
@@ -27,6 +27,7 @@ public class Canvas {
     public List<Polygon> getPolygons() {
         return this.polygons;
     }
+
 
     public void clear() {
         this.lines.clear();

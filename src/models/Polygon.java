@@ -3,21 +3,21 @@ package models;
 import java.util.ArrayList;
 
 public class Polygon {
-    private ArrayList<Line> lines;
+    private ArrayList<Point> vertices;
 
     public Polygon() {
-        lines = new ArrayList<>();
+        vertices = new ArrayList<>();
     }
 
-    public Polygon(ArrayList<Line> lines) {
-        this.lines = lines;
+    public Polygon(ArrayList<Point> vertices) {
+        this.vertices = vertices;
     }
 
-    public void addLine(Line line) {
-        lines.add(line);
+    public void addPoint(Point point) {
+        vertices.add(point);
     }
 
-    public ArrayList<Line> getLines() {
-        return lines;
+    public ArrayList<Point> getPoints() {
+        return vertices;
     }
 }
